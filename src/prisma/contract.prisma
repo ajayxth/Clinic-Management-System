@@ -1,0 +1,161 @@
+// use prisma-8
+
+enum StaffRole{
+  ADMIN
+  RECEPTIONIST
+  DOCTOR
+}
+
+enum AppointmentStatus{
+  BOOKED
+  CHECKED_IN
+  COMPLETED
+  CANCELED
+  NO_SHOW
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  ONLINE
+}
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum Gender{
+  MALE
+  FEMALE
+  OTHER
+}
+model Department{
+  id Int @id @default(autoincrement())
+  name String
+  description String?
+  isActive Boolean @default(true)
+  doctors Doctor[]
+  createdAt DateTime @default(now()) 
+  updatedAt temporal.UpdatedAt
+}
+
+model Doctor{
+  id Int @id @default(autoincrement())
+  name String
+  email String
+  phone String
+  specialization String
+  fee Int
+  isActive Boolean @default(true)
+
+  departmentId Int
+  department Department @relation(fields: [departmentId],references: [id])
+
+  schedules DoctorSchedule[]
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt temporal.UpdatedAt
+
+}
+
+model DoctorSchedule {
+  id                   Int      @id @default(autoincrement())
+  doctorId             Int
+  dayOfWeek            Int
+  startTime            String
+  endTime              String
+  slotDurationMinutes  Int      @default(30)
+  isActive             Boolean  @default(true)
+
+  doctor               Doctor   @relation(fields: [doctorId], references: [id])
+
+  createdAt            DateTime @default(now()) 
+  updatedAt            temporal.UpdatedAt
+}
+
+model Patient {
+  id          Int           @id @default(autoincrement())
+  mrn         String        @unique
+  name        String
+  phone       String
+  email       String?
+  dateOfBirth DateTime?
+  gender      Gender?
+  address     String?
+
+  appointments Appointment[]
+
+  createdAt   DateTime      @default(now()) 
+  updatedAt   temporal.UpdatedAt
+}
+
+model StaffUser {
+  id           Int           @id @default(autoincrement())
+  name         String 
+  email        String        @unique 
+  passwordHash String
+  role         StaffRole
+  doctorId     Int?
+  appointments Appointment[]
+
+  createdAt    DateTime      @default(now()) 
+  updatedAt    temporal.UpdatedAt
+}
+
+model Appointment {
+  id          Int               @id @default(autoincrement())
+  patientId   Int
+  doctorId    Int
+  staffUserId Int
+
+  startAt     DateTime
+  endAt       DateTime
+  status      AppointmentStatus @default(BOOKED)
+  notes       String?
+
+  patient     Patient           @relation(fields: [patientId], references: [id])
+  doctor      Doctor            @relation(fields: [doctorId], references: [id])
+  staffUser   StaffUser         @relation(fields: [staffUserId], references: [id])
+
+  invoice     Invoice?
+
+  createdAt   DateTime          @default(now()) 
+  updatedAt   temporal.UpdatedAt
+}
+
+model Invoice {
+  id            Int           @id @default(autoincrement())
+  appointmentId Int           @unique
+  amount        Int
+  status        InvoiceStatus @default(UNPAID)
+
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id])
+  payments      Payment[]
+
+  createdAt     DateTime      @default(now()) 
+  updatedAt     temporal.UpdatedAt
+}
+
+model Payment {
+  id                   Int           @id @default(autoincrement())
+  invoiceId            Int
+  amount               Int
+  method               PaymentMethod
+  status               PaymentStatus @default(PENDING)
+  transactionReference String?
+
+  invoice              Invoice       @relation(fields: [invoiceId], references: [id])
+
+  createdAt            DateTime      @default(now()) 
+  updatedAt            temporal.UpdatedAt
+}
